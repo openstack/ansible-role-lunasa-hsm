@@ -1,0 +1,89 @@
+---
+- name: Create working directory
+  file:
+      path: "{{ lunasa_client_working_dir }}"
+      state: directory
+      mode: 0755
+
+- name: Download Lunasa client tarball
+  get_url:
+    url: "{{ lunasa_client_tarball_location }}"
+    dest: "{{ lunasa_client_working_dir }}/{{ lunasa_client_tarball_name }}"
+    force: no
+
+- name: Unpack tarball to working directory
+  unarchive:
+    src: "{{ lunasa_client_working_dir }}/{{ lunasa_client_tarball_name }}"
+    dest: "{{ lunasa_client_working_dir }}"
+    creates: "{{ lunasa_client_working_dir }}/{{ lunasa_client_installer_path }}"
+    remote_src: yes
+
+- name: Run the install.sh script
+  shell: |
+    set -o pipefail  && echo y | {{ lunasa_client_working_dir }}/{{ lunasa_client_installer_path }} \
+      -p sa -c sdk
+  args:
+    creates: /usr/lib/libCryptoki2_64.so
+  become: true
+
+- name: register the client to the HSMs
+  include_tasks: register_hsm.yaml
+  loop: "{{ lunasa_hsms }}"
+  vars:
+    hsm_name: "{{ item.name }}"
+    hsm_hostname: "{{ item.hostname }}"
+    hsm_admin_password: "{{ item.admin_password }}"
+    client_ip: "{{ item.client_ip }}"
+    hsm_partition: "{{ item.partition }}"
+
+- name: verify the NTL connection
+  command: /usr/safenet/lunaclient/bin/vtl verify
+  become: true
+
+# create HA partition
+# /vtl haAdmin -newGroup -serialNum 65003001 -label myHAgroup -password userpin
+- name: create hsm ha partition
+  when: lunasa_ha_label is defined
+  block:
+    - name: create ha partition
+      shell: |
+        echo 'copy' | /usr/safenet/lunaclient/bin/lunacm -c hagroup createGroup \
+          -label  {{ lunasa_ha_label }} \
+          -serialNumber {{ lunasa_hsms[0].partition_serial }} \
+          -password {{ lunasa_partition_password }}
+      become: yes
+
+    - name: add other hsms to the ha group
+      shell: |
+        /usr/safenet/lunaclient/bin/lunacm -c hagroup addMember \
+          -group {{ lunasa_ha_label }} \
+          -serial {{ item.partition_serial }} \
+          -password {{ lunasa_partition_password }} 
+      loop: "{{ lunasa_hsms }}"
+      loop_control:
+        extended: yes
+      when: ansible_loop.first != True
+      become: yes
+
+    - name: Generate expect script to check  HA status
+      template:
+        src: list-ha-groups.j2
+        dest: /usr/safenet/lunaclient/bin/list-ha-groups
+        owner: root
+        group: root
+        mode: 0755
+      become: yes
+
+    - name: Check the HA group
+      shell: |
+        /usr/safenet/lunaclient/bin/list-ha-groups | grep 'HA Group Slot ID' | awk '{ print $NF }'
+      register: ha_slot
+      become: yes
+
+    - debug:
+        msg: "{{ ha_slot }}"
+
+#    - name: remove expect script
+#      file:
+#        path: /usr/safenet/lunaclient/bin/list-ha-groups
+#        state: absent

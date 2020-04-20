@@ -1,0 +1,12 @@
+---
+# TODO: maybe use random tmpdir here
+lunasa_client_working_dir: /tmp/lunasa_client_install
+
+# non-defaults
+#lunasa_client_tarball_location: http://download-node-02.eng.bos.redhat.com/qa/rhts/lookaside/IdM/rhcs/lunasa_software/610-012382-014_SW_Client_HSM_6.2_RevA.tar.zip
+#lunasa_client_tarball_name: 610-012382-014_SW_Client_HSM_6.2_RevA.tar.zip
+#lunasa_client_installer_path: 610-012382-014_SW_Client_HSM_6.2_RevA/linux/64/install.sh
+#lunasa_hsm_server_hostname: os-luna-hsm-1.perf.lab.eng.rdu2.redhat.com
+#lunasa_hsm_server_admin_password: ABC123!!!
+#lunasa_hsm_partition: secdfgPartition1
+#lunasa_client_ip: 10.0.79.37
