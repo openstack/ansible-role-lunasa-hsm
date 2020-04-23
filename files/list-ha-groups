@@ -14,7 +14,5 @@ set timeout -1
 spawn /usr/safenet/lunaclient/bin/lunacm -c hagroup listgroups
 match_max 100000
 expect "	Enter the password: "
-send -- "{{ lunasa_partition_password }}"
-expect -exact "****************"
 send -- "\r"
 expect eof
