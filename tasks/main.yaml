@@ -91,20 +91,3 @@
 
     - debug:
         msg: "HA Slot ID: {{ ha_slot.stdout }}"
-
-    - name: update hieradata
-      block:
-        - name: read existing hieradata
-          slurp: /etc/puppet/hieradata/ansible_managed.json
-          register: _ansible_managed
-
-        - name: import data
-          set_fact:
-            _data: "{{ _ansible_managed['content'] | b64decode }}"
-            _new_data:
-              p11_crypto_plugin_slot_id: "{{ ha_slot.stdout }}"
-
-        - name: update data
-          copy:
-            dest: /etc/puppet/hieradata/ansible_managed.json
-            contet: "{{ _data | combine(_new_data) | to_json }}"
