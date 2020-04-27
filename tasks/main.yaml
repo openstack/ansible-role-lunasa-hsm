@@ -60,11 +60,11 @@
         echo 'copy' | /usr/safenet/lunaclient/bin/lunacm -c hagroup addMember \
           -group {{ lunasa_ha_label }} \
           -serialNumber {{ item.partition_serial }} \
-          -password {{ lunasa_partition_password }} 
+          -password {{ lunasa_partition_password }}
       loop: "{{ lunasa_hsms }}"
       loop_control:
         extended: yes
-      when: ansible_loop.first != True
+      when: not ansible_loop.first
       register: result
       failed_when:
         - "'Command Result : No Error' not in result.stdout"
