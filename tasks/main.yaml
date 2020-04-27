@@ -70,23 +70,17 @@
         - "'Command Result : No Error' not in result.stdout"
         - "'The member you specified is already part of an' not in result.stdout"
 
-    - name: Copy expect script to check  HA status
-      copy:
-        src: list-ha-groups.j2
-        dest: /usr/safenet/lunaclient/bin/list-ha-groups
-        owner: root
-        group: root
-        mode: 0755
-
     - name: Check the HA group
-      shell: |
-        /usr/safenet/lunaclient/bin/list-ha-groups
+      expect:
+        command: /usr/safenet/lunaclient/bin/lunacm -c hagroup listgroups
+        responses:
+          password: "\r"
       register: result
       failed_when: "'Command Result : No Error' not in result.stdout"
 
     - name: Register the HA Slot ID
       shell: |
-        set -o pipefail && /usr/safenet/lunaclient/bin/list-ha-groups | grep 'HA Group Slot ID' | awk '{ print $NF }'
+        set -o pipefail && echo "{{ result.stdout }}" | grep 'HA Group Slot ID' | awk '{ print $NF }'
       register: ha_slot
 
     - debug:
