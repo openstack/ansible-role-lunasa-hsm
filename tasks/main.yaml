@@ -52,8 +52,8 @@
           -password {{ lunasa_partition_password }}
       register: result
       failed_when:
-        - 'Command Result : No Error' not in result.stdout
-        - 'for the new group has already been used' not in result.stdout
+        - "'Command Result : No Error' not in result.stdout"
+        - "'for the new group has already been used' not in result.stdout"
 
     - name: add other hsms to the ha group
       shell: |
@@ -67,8 +67,8 @@
       when: ansible_loop.first != True
       register: result
       failed_when:
-        - 'Command Result : No Error' not in result.stdout
-        - 'The member you specified is already part of an' not in result.stdout
+        - "'Command Result : No Error' not in result.stdout"
+        - "'The member you specified is already part of an' not in result.stdout"
 
     - name: Copy expect script to check  HA status
       copy:
@@ -82,7 +82,7 @@
       shell: |
         /usr/safenet/lunaclient/bin/list-ha-groups
       register: result
-      failed_when: 'Command Result : No Error' not in result.stdout
+      failed_when: "'Command Result : No Error' not in result.stdout"
 
     - name: Register the HA Slot ID
       shell: |
@@ -91,3 +91,20 @@
 
     - debug:
         msg: "HA Slot ID: {{ ha_slot.stdout }}"
+
+    - name: update hieradata
+      block:
+        - name: read existing hieradata
+          slurp: /etc/puppet/hieradata/ansible_managed.json
+          register: _ansible_managed
+
+        - name: import data
+          set_fact:
+            _data: "{{ _ansible_managed['content'] | b64decode }}"
+            _new_data:
+              p11_crypto_plugin_slot_id: "{{ ha_slot.stdout }}"
+
+        - name: update data
+          copy:
+            dest: /etc/puppet/hieradata/ansible_managed.json
+            contet: "{{ _data | combine(_new_data) | to_json }}"
