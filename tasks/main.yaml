@@ -81,7 +81,8 @@
     - name: Register the HA Slot ID
       shell: |
         set -o pipefail && echo "{{ result.stdout }}" | grep 'HA Group Slot ID' | awk '{ print $NF }'
-      register: ha_slot
+      register: slot_result
 
-    - debug:
-        msg: "HA Slot ID: {{ ha_slot.stdout }}"
+    - name: Set HA Slot fact for use by the playbook calling this role
+      set_fact:
+        lunasa_ha_slot: "{{ slot_result.stdout }}"
