@@ -1,0 +1,77 @@
+---
+- name: Log when client is being registered to HSM
+  debug:
+    msg: "Registering client: {{ client_name }} [{{ client_host }}] with HSM: {{ hsm_hostname }}"
+
+- name: Get the hsm server cert from the hsm_server
+  shell: >
+    sshpass -p '{{ hsm_admin_password }}'
+    scp -o StrictHostKeyChecking=false -c aes256-cbc
+    admin@{{ hsm_hostname }}:server.pem
+    /usr/safenet/lunaclient/bin/{{ hsm_hostname }}.pem
+  args:
+    creates: /usr/safenet/lunaclient/bin/{{ hsm_hostname }}.pem
+  become: true
+
+- name: Register the HSM server cert with the client
+  shell: >
+    /usr/safenet/lunaclient/bin/vtl addServer -n {{ hsm_hostname }}
+    -c /usr/safenet/lunaclient/bin/{{ hsm_hostname }}.pem
+  register: add_server
+  become: true
+  failed_when:
+    - add_server.rc != 0
+    - '"This server is already registered" not in add_server.stdout'
+
+- name: Check for existing clients
+  shell: >
+    sshpass -p '{{ hsm_admin_password }}'
+    ssh -o StrictHostKeyChecking=false -c aes256-cbc admin@{{ hsm_hostname }}
+    -C client list
+  register: client_list
+
+- name: Fail if client is already registered, but we don't have that cert
+  fail:
+    msg: "Client: {{ client_name }} is already registered, but the client cert is missing!"
+  when:
+    - client_name in client_list.stdout
+    - client_new_cert
+    - not lunasa_client_rotate_cert
+
+- name: Delete existing client when rotating certs
+  shell: >
+    sshpass -p '{{ hsm_admin_password }}' ssh -c aes256-cbc admin@{{ hsm_hostname }}
+    -C "client delete -f -c {{ client_name }}"
+  when:
+    - client_name in client_list.stdout
+    - lunasa_client_rotate_cert
+
+- name: Register the client certificate on the hsm_server
+  block:
+    - name: Copy the NTL client cert to the HSM
+      shell: >
+        sshpass -p '{{ hsm_admin_password }}' scp -c aes256-cbc
+        /usr/safenet/lunaclient/cert/client/{{ client_host }}.pem
+        admin@{{ hsm_hostname }}:{{ client_host }}.pem
+
+    - name: Register the client
+      shell: >
+        sshpass -p '{{ hsm_admin_password }}' ssh -c aes256-cbc admin@{{ hsm_hostname }}
+        -C "client register -c {{ client_name }} {{ client_reg_opt }} {{ client_host }}"
+      register: client_register
+      failed_when:
+        - client_register.rc != 0
+        - "'client with the same IP address has already been registered' not in client_register.stdout"
+  become: true
+  when: client_name not in client_list.stdout or lunasa_client_rotate_cert
+
+- name: Assign client to an HSM partition
+  shell: |
+    sshpass -p '{{ hsm_admin_password }}' ssh -c aes256-cbc admin@{{ hsm_hostname }} \
+      -C "client assignPartition -c {{ client_name }} -p {{ hsm_partition }}"
+  register: assign_partition
+  failed_when:
+    - assign_partition.rc != 0
+    - "'client already has access' not in assign_partition.stdout"
+  become: true
+

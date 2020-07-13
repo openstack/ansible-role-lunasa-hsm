@@ -1,10 +1,13 @@
 lunasa-hsm
 ==========
 
-A role to manage Safenet Lunasa Hardware Security Module (HSM) client software.
+A role to manage Thales Luna Network Hardware Security Module (HSM) clients.
 
 Role Variables
 --------------
+
+This ansible role automates the configuration of a new client for the
+Thales Luna Network HSM.
 
 .. list-table::
    :widths: auto
@@ -25,18 +28,22 @@ Role Variables
    * - lunasa_client_installer_path
      - None
      - Path to the instal.sh script inside the tarball.
-   * - lunasa_hsm_server_hostname
+   * - lunasa_client_pin
      - None
-     - Hostnme for the Lunasa HSM.
-   * - lunasa_hsm_server_admin_password
-     - None
-     - Password for the admin user for the Lunasa HSM.
-   * - lunasa_hsm_partition
-     - None
-     - HSM Partition to assign the client.
+     - The HSM Partition Password (PKCS#11 PIN) to be used by the client.
    * - lunasa_client_ip
      - None
-     - IP to use when registering the client.
+     - (Optional) When set, this role will use the given IP to register
+       the client instead of the client's fqdn.
+   * - lunasa_client_rotate_cert
+     - False
+     - When set to True, the role will generate a new client certificate
+       to replace the previous one.
+   * - lunasa_hsms
+     - None
+     - List of dictionaries, each of which describes a single HSM
+       `see vars.sample.yaml` for details.  When more than one HSM is
+       listed here, the client will be configured in HA mode.
 
 Requirements
 ------------

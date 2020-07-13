@@ -1,9 +1,9 @@
 ---
 - name: Create working directory
   file:
-      path: "{{ lunasa_client_working_dir }}"
-      state: directory
-      mode: 0755
+    path: "{{ lunasa_client_working_dir }}"
+    state: directory
+    mode: 0755
 
 - name: Download Lunasa client tarball
   get_url:
@@ -26,22 +26,59 @@
     creates: /usr/lib/libCryptoki2_64.so
   become: true
 
-- name: register the client to the HSMs
-  include_tasks: register_hsm.yaml
-  loop: "{{ lunasa_hsms }}"
+- name: set client facts for fqdn
+  set_fact:
+    client_name: "{{ ansible_fqdn }}"
+    client_reg_opt: "-hostname"
+    client_host: "{{ ansible_fqdn }}"
+    client_cert_cn: "{{ inventory_hostname }}"
+  when: lunasa_client_ip is undefined
+
+- name: set client facts for IP override
+  set_fact:
+    client_name: "{{ ansible_fqdn }}"
+    client_reg_opt: "-ip"
+    client_host: "{{ lunasa_client_ip }}"
+    client_cert_cn: "{{ lunasa_client_ip }}"
+  when: lunasa_client_ip is defined
+
+- name: Check for existing client cert
+  stat:
+    path: "/usr/safenet/lunaclient/cert/client/{{ client_host }}.pem"
+  register: client_cert
+
+- name: Generate a new client cert for NTL
+  command: /usr/safenet/lunaclient/bin/vtl createCert -n "{{ client_cert_cn }}"
+  become: true
+  register: created_cert
+  when: not client_cert.stat.exists or lunasa_client_rotate_cert
+
+- name: Note when a new cert is created
+  set_fact:
+    client_new_cert: "{{ created_cert.changed }}"
+
+- name: register the client on each HSM
+  include_tasks: register_client.yaml
   vars:
-    hsm_name: "{{ item.name }}"
     hsm_hostname: "{{ item.hostname }}"
     hsm_admin_password: "{{ item.admin_password }}"
-    client_ip: "{{ item.client_ip }}"
     hsm_partition: "{{ item.partition }}"
+  loop: "{{ lunasa_hsms }}"
 
 - name: verify the NTL connection
   command: /usr/safenet/lunaclient/bin/vtl verify
   become: true
+  register: vtl_verify
+
+- name: Fail if NTL connection doesn't verify
+  fail:
+    msg: >
+      ERROR: 'vtl verify' failed.  This is commonly due to network NAT between
+      the client and the HSM.  Try disabling client IP checking in the HSM
+  when: "'Error: Unable to find any Luna SA slots/partitions' in vtl_verify.stdout"
 
 - name: create hsm ha partition
-  when: lunasa_ha_label is defined
+  when: lunasa_hsms | length > 1
   become: true
   block:
     - name: create ha partition
@@ -49,7 +86,7 @@
         echo 'copy' | /usr/safenet/lunaclient/bin/lunacm -c hagroup createGroup \
           -label  {{ lunasa_ha_label }} \
           -serialNumber {{ lunasa_hsms[0].partition_serial }} \
-          -password {{ lunasa_partition_password }}
+          -password {{ lunasa_client_pin }}
       register: result
       failed_when:
         - "'Command Result : No Error' not in result.stdout"
@@ -60,7 +97,7 @@
         echo 'copy' | /usr/safenet/lunaclient/bin/lunacm -c hagroup addMember \
           -group {{ lunasa_ha_label }} \
           -serialNumber {{ item.partition_serial }} \
-          -password {{ lunasa_partition_password }}
+          -password {{ lunasa_client_pin }}
       loop: "{{ lunasa_hsms }}"
       loop_control:
         extended: yes
@@ -86,3 +123,7 @@
     - name: Set HA Slot fact for use by the playbook calling this role
       set_fact:
         lunasa_ha_slot: "{{ slot_result.stdout }}"
+
+    - name: Log the HA Slot ID used
+      debug:
+        var: lunasa_ha_slot
