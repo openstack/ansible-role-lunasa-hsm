@@ -15,6 +15,7 @@
   unarchive:
     src: "{{ lunasa_client_working_dir }}/{{ lunasa_client_tarball_name }}"
     dest: "{{ lunasa_client_working_dir }}"
+    mode: preserve
     creates: "{{ lunasa_client_working_dir }}/{{ lunasa_client_installer_path }}"
     remote_src: yes
 
@@ -44,7 +45,7 @@
 
 - name: Check for existing client cert
   stat:
-    path: "/usr/safenet/lunaclient/cert/client/{{ client_host }}.pem"
+    path: "/usr/safenet/lunaclient/cert/client/{{ client_cert_cn }}.pem"
   register: client_cert
 
 - name: Generate a new client cert for NTL

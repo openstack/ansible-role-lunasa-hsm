@@ -1,7 +1,7 @@
 ---
 - name: Log when client is being registered to HSM
   debug:
-    msg: "Registering client: {{ client_name }} [{{ client_host }}] with HSM: {{ hsm_hostname }}"
+    msg: "Registering client: {{ client_name }} [host: {{ client_host }}, CN: {{ client_cert_cn }}] with HSM: {{ hsm_hostname }}"
 
 - name: Get the hsm server cert from the hsm_server
   shell: >
@@ -51,7 +51,7 @@
     - name: Copy the NTL client cert to the HSM
       shell: >
         sshpass -p '{{ hsm_admin_password }}' scp -c aes256-cbc
-        /usr/safenet/lunaclient/cert/client/{{ client_host }}.pem
+        /usr/safenet/lunaclient/cert/client/{{ client_cert_cn }}.pem
         admin@{{ hsm_hostname }}:{{ client_host }}.pem
 
     - name: Register the client
