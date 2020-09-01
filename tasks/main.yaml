@@ -11,11 +11,10 @@
     dest: "{{ lunasa_client_working_dir }}/{{ lunasa_client_tarball_name }}"
     force: no
 
-- name: Unpack tarball to working directory
+- name: Unpack tarball to working directory  # noqa 208
   unarchive:
     src: "{{ lunasa_client_working_dir }}/{{ lunasa_client_tarball_name }}"
     dest: "{{ lunasa_client_working_dir }}"
-    mode: preserve
     creates: "{{ lunasa_client_working_dir }}/{{ lunasa_client_installer_path }}"
     remote_src: yes
 
