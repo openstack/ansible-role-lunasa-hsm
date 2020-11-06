@@ -1,0 +1,8 @@
+---
+- name: Delete clients from HSM
+  shell: >
+    sshpass -p '{{ item.admin_password }}' ssh -o StrictHostKeyChecking=false
+    -c aes256-cbc admin@{{ item.hostname }}
+    -C "client delete -f -c {{ client_name }}"
+  loop: "{{ lunasa_hsms }}"
+  ignore_errors: true
