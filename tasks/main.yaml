@@ -28,15 +28,15 @@
 
 - name: set client facts for fqdn
   set_fact:
-    client_name: "{{ ansible_fqdn }}"
+    client_name: "{{ ansible_facts['fqdn'] }}"
     client_reg_opt: "-hostname"
-    client_host: "{{ ansible_fqdn }}"
+    client_host: "{{ ansible_facts['fqdn'] }}"
     client_cert_cn: "{{ inventory_hostname }}"
   when: lunasa_client_ip is undefined
 
 - name: set client facts for IP override
   set_fact:
-    client_name: "{{ ansible_fqdn }}"
+    client_name: "{{ ansible_facts['fqdn'] }}"
     client_reg_opt: "-ip"
     client_host: "{{ lunasa_client_ip }}"
     client_cert_cn: "{{ lunasa_client_ip }}"
