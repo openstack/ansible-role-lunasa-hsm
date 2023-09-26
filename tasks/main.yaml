@@ -19,9 +19,8 @@
     remote_src: yes
 
 - name: Run the install.sh script
-  shell: |
-    set -o pipefail  && echo y | {{ lunasa_client_working_dir }}/{{ lunasa_client_installer_path }} \
-      -p sa -c sdk
+  ansible.builtin.shell: |
+    set -o pipefail && echo y | bash {{ lunasa_client_working_dir }}/{{ lunasa_client_installer_path }} -p sa -c sdk
   args:
     creates: /usr/lib/libCryptoki2_64.so
   become: true
