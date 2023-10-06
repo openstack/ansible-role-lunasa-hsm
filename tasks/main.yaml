@@ -32,7 +32,7 @@
     client_name: "{{ ansible_facts['fqdn'] }}"
     client_reg_opt: "-hostname"
     client_host: "{{ ansible_facts['fqdn'] }}"
-    client_cert_cn: "{{ inventory_hostname }}"
+    client_cert_cn: "{{ ansible_facts['fqdn'] }}"
   when: lunasa_client_ip is undefined
 
 - name: Set client facts for IP override
