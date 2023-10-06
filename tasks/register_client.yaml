@@ -6,7 +6,7 @@
 - name: Get the hsm server cert from the hsm_server
   ansible.builtin.shell: >
     sshpass -p '{{ hsm_admin_password }}'
-    scp -o StrictHostKeyChecking=false -c aes256-cbc
+    scp -O -o StrictHostKeyChecking=false -c aes256-cbc
     admin@{{ hsm_hostname }}:server.pem
     /usr/safenet/lunaclient/bin/{{ hsm_hostname }}.pem
   args:
@@ -52,7 +52,7 @@
   block:
     - name: Copy the NTL client cert to the HSM
       ansible.builtin.shell: >
-        sshpass -p '{{ hsm_admin_password }}' scp -c aes256-cbc
+        sshpass -p '{{ hsm_admin_password }}' scp -O -c aes256-cbc
         /usr/safenet/lunaclient/cert/client/{{ client_cert_cn }}.pem
         admin@{{ hsm_hostname }}:{{ client_host }}.pem
 
