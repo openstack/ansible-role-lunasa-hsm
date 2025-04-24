@@ -3,6 +3,18 @@
   ansible.builtin.debug:
     msg: "Registering client: {{ client_name }} [host: {{ client_host }}, CN: {{ client_cert_cn }}] with HSM: {{ hsm_hostname }}"
 
+- name: Create hsmusers group
+  ansible.builtin.group:
+    name: hsmusers
+    gid: "{{ lunasa_group_id }}"
+
+- name: Create hsmusers user
+  ansible.builtin.user:
+    name: hsmusers
+    uid: "{{ lunasa_user_id }}"
+    group: "{{ lunasa_group_id }}"
+    create_home: false
+
 - name: Get the hsm server cert from the hsm_server
   ansible.builtin.shell: >
     sshpass -p '{{ hsm_admin_password }}'
