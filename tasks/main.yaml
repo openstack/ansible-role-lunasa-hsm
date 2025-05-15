@@ -5,6 +5,18 @@
     state: directory
     mode: '755'
 
+- name: Create hsmusers group
+  ansible.builtin.group:
+    name: hsmusers
+    gid: "{{ lunasa_group_id }}"
+
+- name: Create hsmusers user
+  ansible.builtin.user:
+    name: hsmusers
+    uid: "{{ lunasa_user_id }}"
+    group: "{{ lunasa_group_id }}"
+    create_home: false
+
 - name: Download Lunasa client tarball
   ansible.builtin.get_url:
     url: "{{ lunasa_client_tarball_location }}"
