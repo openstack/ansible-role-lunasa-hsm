@@ -16,6 +16,14 @@ Thales Luna Network HSM.
    * - Name
      - Default Value
      - Description
+   * - lunasa_appliance_user:
+     - admin
+     - Appliance User account used to log into the HSM to manage clients
+       and parititon assignments.
+   * - lunasa_ssh_cipher:
+     - aes256-cbc
+     - `-c cipher_spec` argument passed to SSH/SCP when connecting to the HSM
+       as the `lunasa_appliance_user`.
    * - lunasa_client_working_dir
      - /tmp/lunasa_client_install
      - Working directory in the target host.
@@ -28,6 +36,10 @@ Thales Luna Network HSM.
    * - lunasa_client_installer_path
      - None
      - Path to the instal.sh script inside the tarball.
+   * - lunasa_client_device
+     - sa
+     - Luna product parameter passed to the Luna client software install.sh
+       script.
    * - lunasa_client_pin
      - None
      - The HSM Partition Password (PKCS#11 PIN) to be used by the client.

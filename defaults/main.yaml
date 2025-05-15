@@ -1,6 +1,9 @@
 ---
 lunasa_client_working_dir: /tmp/lunasa_client_install
 lunasa_client_rotate_cert: false
+lunasa_client_device: sa
+lunasa_appliance_user: admin
 lunasa_ha_label: myHAgroup
 lunasa_user_id: 42493
 lunasa_group_id: 42493
+lunasa_ssh_cipher: aes256-cbc

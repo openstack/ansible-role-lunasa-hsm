@@ -1,8 +1,17 @@
 ---
+- name: Default to not passing a cipher to scp/ssh
+  ansible.builtin.set_fact:
+    luna_ssh_cipher_parameter: ""
+
+- name: Use ssh cipher when set
+  ansible.builtin.set_fact:
+    luna_ssh_cipher_parameter: "-c {{ lunasa_ssh_cipher }}"
+  when: lunasa_ssh_cipher
+
 - name: Delete clients from HSM
   ansible.builtin.shell: >
     sshpass -p '{{ item.admin_password }}' ssh -o StrictHostKeyChecking=false
-    -c aes256-cbc admin@{{ item.hostname }}
+    {{ luna_ssh_cipher_parameter }} {{ lunasa_appliance_user }}@{{ item.hostname }}
     -C "client delete -f -c {{ client_name }}"
   loop: "{{ lunasa_hsms }}"
   ignore_errors: true

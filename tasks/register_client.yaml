@@ -3,11 +3,20 @@
   ansible.builtin.debug:
     msg: "Registering client: {{ client_name }} [host: {{ client_host }}, CN: {{ client_cert_cn }}] with HSM: {{ hsm_hostname }}"
 
+- name: Default to not passing a cipher to scp/ssh
+  ansible.builtin.set_fact:
+    luna_ssh_cipher_parameter: ""
+
+- name: Use ssh cipher when set
+  ansible.builtin.set_fact:
+    luna_ssh_cipher_parameter: "-c {{ lunasa_ssh_cipher }}"
+  when: lunasa_ssh_cipher
+
 - name: Get the hsm server cert from the hsm_server
   ansible.builtin.shell: >
     sshpass -p '{{ hsm_admin_password }}'
-    scp -O -o StrictHostKeyChecking=false -c aes256-cbc
-    admin@{{ hsm_hostname }}:server.pem
+    scp -O -o StrictHostKeyChecking=false {{ luna_ssh_cipher_parameter }}
+    {{ lunasa_appliance_user }}@{{ hsm_hostname }}:server.pem
     /usr/safenet/lunaclient/bin/{{ hsm_hostname }}.pem
   args:
     creates: /usr/safenet/lunaclient/bin/{{ hsm_hostname }}.pem
@@ -26,8 +35,8 @@
 - name: Check for existing clients
   ansible.builtin.shell: >
     sshpass -p '{{ hsm_admin_password }}'
-    ssh -o StrictHostKeyChecking=false -c aes256-cbc admin@{{ hsm_hostname }}
-    -C client list
+    ssh -o StrictHostKeyChecking=false {{ luna_ssh_cipher_parameter }}
+    {{ lunasa_appliance_user }}@{{ hsm_hostname }} -C client list
   register: client_list
 
 - name: Fail if client is already registered, but we don't have that cert
@@ -40,8 +49,8 @@
 
 - name: Delete existing client when rotating certs
   ansible.builtin.shell: >
-    sshpass -p '{{ hsm_admin_password }}' ssh -c aes256-cbc admin@{{ hsm_hostname }}
-    -C "client delete -f -c {{ client_name }}"
+    sshpass -p '{{ hsm_admin_password }}' ssh {{ luna_ssh_cipher_parameter }}
+    {{ lunasa_appliance_user }}@{{ hsm_hostname }} -C "client delete -f -c {{ client_name }}"
   when:
     - client_name in client_list.stdout
     - lunasa_client_rotate_cert
@@ -52,13 +61,15 @@
   block:
     - name: Copy the NTL client cert to the HSM
       ansible.builtin.shell: >
-        sshpass -p '{{ hsm_admin_password }}' scp -O -c aes256-cbc
+        sshpass -p '{{ hsm_admin_password }}'
+        scp -O {{ luna_ssh_cipher_parameter }}
         /usr/safenet/lunaclient/cert/client/{{ client_cert_cn }}.pem
-        admin@{{ hsm_hostname }}:{{ client_host }}.pem
+        {{ lunasa_appliance_user }}@{{ hsm_hostname }}:{{ client_host }}.pem
 
     - name: Register the client
       ansible.builtin.shell: >
-        sshpass -p '{{ hsm_admin_password }}' ssh -c aes256-cbc admin@{{ hsm_hostname }}
+        sshpass -p '{{ hsm_admin_password }}'
+        ssh {{ luna_ssh_cipher_parameter }} {{ lunasa_appliance_user }}@{{ hsm_hostname }}
         -C "client register -c {{ client_name }} {{ client_reg_opt }} {{ client_host }}"
       register: client_register
       failed_when:
@@ -67,7 +78,8 @@
 
 - name: Assign client to an HSM partition
   ansible.builtin.shell: |
-    sshpass -p '{{ hsm_admin_password }}' ssh -c aes256-cbc admin@{{ hsm_hostname }} \
+    sshpass -p '{{ hsm_admin_password }}' ssh {{ luna_ssh_cipher_parameter }} \
+    {{ lunasa_appliance_user }}@{{ hsm_hostname }} \
       -C "client assignPartition -c {{ client_name }} -p {{ hsm_partition }}"
   register: assign_partition
   failed_when:
